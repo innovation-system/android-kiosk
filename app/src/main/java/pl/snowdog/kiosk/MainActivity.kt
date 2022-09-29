@@ -9,6 +9,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.IntentSender
+import android.content.SharedPreferences
 import android.content.pm.PackageInstaller
 import android.content.pm.PackageInstaller.SessionParams
 import android.os.BatteryManager
@@ -25,6 +26,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var mAdminComponentName: ComponentName
     private lateinit var mDevicePolicyManager: DevicePolicyManager
     private lateinit var binding: ActivityMainBinding
+    private lateinit var sharedPref: SharedPreferences
 
     companion object {
         const val LOCK_ACTIVITY_KEY = "pl.snowdog.kiosk.MainActivity"
@@ -39,6 +41,9 @@ class MainActivity : AppCompatActivity() {
         mDevicePolicyManager = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
 
         mDevicePolicyManager.removeActiveAdmin(mAdminComponentName)
+        sharedPref = getSharedPreferences(getString(R.string.storage_key), Context.MODE_PRIVATE)?: return
+        val url = sharedPref.getString(getString(R.string.url_key), "")
+        binding.txtUrl.editText?.setText(url)
 
         val isAdmin = isAdmin()
         if (isAdmin) {
@@ -74,6 +79,15 @@ class MainActivity : AppCompatActivity() {
         }
         setLockTask(enable, isAdmin)
         setImmersiveMode(enable)
+
+        // save URL on storage
+        with (sharedPref.edit()) {
+            putString(getString(R.string.url_key), binding.txtUrl.editText?.text?.toString())
+            commit()
+        }
+
+        val intent = Intent(applicationContext, WebviewActivity::class.java)
+        startActivity(intent)
     }
 
     // region restrictions

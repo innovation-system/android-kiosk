@@ -12,45 +12,69 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <TextView
-            android:layout_width="wrap_content"
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/txtUrl"
+            android:layout_width="292dp"
+            android:layout_height="70dp"
+            android:ems="10"
+            android:hint="@string/url_hint"
+            android:inputType="textPersonName"
+            app:layout_constraintBottom_toBottomOf="@id/btInstallApp"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColorHint="#616161" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btInstallApp"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/text_margin"
-            android:text="@string/app_name"
-            android:textSize="@dimen/title"
-            app:layout_constraintBottom_toTopOf="@id/btStartLockTask"
+            android:layout_marginTop="16dp"
+            android:text="@string/install"
+            app:layout_constraintEnd_toEndOf="@id/btStopLockTask"
+            app:layout_constraintHorizontal_bias="1.0"
             app:layout_constraintStart_toStartOf="@id/btStartLockTask"
-            app:layout_constraintEnd_toEndOf="@id/btStopLockTask" />
+            app:layout_constraintTop_toBottomOf="@id/btStartLockTask" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btStartLockTask"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/start_lock_task"
-            app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintLeft_toLeftOf="parent"
-            app:layout_constraintRight_toLeftOf="@id/btStopLockTask" />
+            app:layout_constraintRight_toLeftOf="@id/btStopLockTask"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.454" />
 
         <com.google.android.material.button.MaterialButton
-            style="?attr/materialButtonOutlinedStyle"
             android:id="@+id/btStopLockTask"
+            style="?attr/materialButtonOutlinedStyle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/stop_lock_task"
-            app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintLeft_toRightOf="@id/btStartLockTask"
-            app:layout_constraintRight_toRightOf="parent" />
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.454" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btInstallApp"
-            android:layout_width="0dp"
+        <TextView
+            android:id="@+id/textView"
+            android:textSize="@dimen/title"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/buttons_margin"
-            android:text="@string/install"
-            app:layout_constraintTop_toBottomOf="@id/btStartLockTask"
-            app:layout_constraintStart_toStartOf="@id/btStartLockTask"
-            app:layout_constraintEnd_toEndOf="@id/btStopLockTask" />
+            android:layout_marginStart="373dp"
+            android:layout_marginTop="48dp"
+            android:layout_marginEnd="370dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.482"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/txtUrl" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
