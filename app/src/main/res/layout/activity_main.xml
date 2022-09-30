@@ -22,12 +22,19 @@
             app:layout_constraintBottom_toBottomOf="@id/btInstallApp"
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintRight_toRightOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
+            app:layout_constraintTop_toTopOf="parent"
+            android:maxLines="1"
+            android:lines="1"
+            android:singleLine="true">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textColorHint="#616161" />
+                android:textColorHint="#616161"
+                android:maxLines="1"
+                android:lines="1"
+                android:singleLine="true"
+                />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.button.MaterialButton

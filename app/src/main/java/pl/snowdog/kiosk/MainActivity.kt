@@ -4,22 +4,20 @@ import android.app.PendingIntent
 import android.app.PendingIntent.FLAG_IMMUTABLE
 import android.app.admin.DevicePolicyManager
 import android.app.admin.SystemUpdatePolicy
-import android.content.ComponentName
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
-import android.content.IntentSender
-import android.content.SharedPreferences
+import android.content.*
 import android.content.pm.PackageInstaller
 import android.content.pm.PackageInstaller.SessionParams
 import android.os.BatteryManager
 import android.os.Bundle
 import android.os.UserManager
 import android.provider.Settings
+import android.view.Gravity
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
+import androidx.coordinatorlayout.widget.CoordinatorLayout
 import com.google.android.material.snackbar.Snackbar
 import pl.snowdog.kiosk.databinding.ActivityMainBinding
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -30,6 +28,7 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         const val LOCK_ACTIVITY_KEY = "pl.snowdog.kiosk.MainActivity"
+        const val URL_REGEX =  "(https?:\\/\\/)?([\\da-z\\.-]+)\\.([a-z]{2,6})([\\/\\w\\.-]*)*\\/?"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,14 +41,19 @@ class MainActivity : AppCompatActivity() {
 
         mDevicePolicyManager.removeActiveAdmin(mAdminComponentName)
         sharedPref = getSharedPreferences(getString(R.string.storage_key), Context.MODE_PRIVATE)?: return
+
         val url = sharedPref.getString(getString(R.string.url_key), "")
         binding.txtUrl.editText?.setText(url)
         val edit = sharedPref.getBoolean(getString(R.string.edit_key), false)
 
         if (!edit && url != null && url != "") {
-            val intent = Intent(applicationContext, WebviewActivity::class.java)
-            startActivity(intent)
-            return
+            if (url.matches(URL_REGEX.toRegex())) {
+                val intent = Intent(applicationContext, WebviewActivity::class.java)
+                startActivity(intent)
+                return
+            } else {
+                Snackbar.make(binding.content, R.string.url_wrong, Snackbar.LENGTH_SHORT).show()
+            }
         }
 
         val isAdmin = isAdmin()
@@ -88,6 +92,28 @@ class MainActivity : AppCompatActivity() {
     private fun isAdmin() = mDevicePolicyManager.isDeviceOwnerApp(packageName)
 
     private fun setKioskPolicies(enable: Boolean, isAdmin: Boolean) {
+        var url =  binding.txtUrl.editText?.text.toString()
+
+        if (enable) {
+            if (!url.matches(URL_REGEX.toRegex())) {
+                val snack = Snackbar.make(binding.content, R.string.url_wrong, Snackbar.LENGTH_SHORT)
+                val layoutParams = snack.view.layoutParams as CoordinatorLayout.LayoutParams
+                layoutParams.anchorId = R.id.txtUrl //Id for your bottomNavBar or TabLayout
+                layoutParams.anchorGravity = Gravity.BOTTOM
+                layoutParams.gravity = Gravity.BOTTOM
+                layoutParams.topMargin = 10
+                snack.view.layoutParams = layoutParams
+                snack.show()
+                return
+            }
+
+            if (!url.startsWith("http")) {
+                url = "https://$url"
+            } else if (!url.startsWith("https")) {
+                url = url.replace("http", "https")
+            }
+        }
+
         if (isAdmin) {
             setRestrictions(enable)
             enableStayOnWhilePluggedIn(enable)
@@ -98,9 +124,11 @@ class MainActivity : AppCompatActivity() {
         setLockTask(enable, isAdmin)
         setImmersiveMode(enable)
 
+
+
         // save URL on storage
         with (sharedPref.edit()) {
-            putString(getString(R.string.url_key), binding.txtUrl.editText?.text?.toString())
+            putString(getString(R.string.url_key), url)
             commit()
         }
 

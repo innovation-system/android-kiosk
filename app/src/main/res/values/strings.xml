@@ -11,4 +11,5 @@
     <string name="edit_key">EDIT</string>
     <string name="dialog_title">Please enter the PIN</string>
     <string name="dialog_wrong">Wrong PIN</string>
+    <string name="url_wrong">URL is not valid</string>
 </resources>
