@@ -43,4 +43,7 @@ adb uninstall pl.snowdog.kiosk
 
 ## Screenshots
 
-<img src="https://user-images.githubusercontent.com/12548284/37874490-775d37d6-3030-11e8-897c-e5d930a3d44f.png" width="292" height="519" /> <img src="https://user-images.githubusercontent.com/12548284/37874485-6c9b6a70-3030-11e8-8ea4-75ec19f10a59.png" width="292" height="519" />
+![screen01](https://user-images.githubusercontent.com/29949267/193298639-4faa5671-54b1-4abc-a025-56c487401ca8.png)
+![screen02](https://user-images.githubusercontent.com/29949267/193298776-ab5d60af-e82f-4dfc-b09e-7dea18a66c72.png)
+![screen03](https://user-images.githubusercontent.com/29949267/193298825-58ab131d-12c2-4450-9a5a-80c5ff148748.png)
+![screen04](https://user-images.githubusercontent.com/29949267/193298859-15bbe6bf-0f97-4007-8ba7-3938815b9edf.png)
