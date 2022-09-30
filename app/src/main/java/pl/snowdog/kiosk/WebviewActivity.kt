@@ -1,42 +1,161 @@
 package pl.snowdog.kiosk
 
+import android.app.AlertDialog
 import android.app.admin.DevicePolicyManager
-import android.content.ComponentName
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
+import android.app.admin.SystemUpdatePolicy
+import android.content.*
 import android.os.BatteryManager
 import android.os.Build
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.os.UserManager
 import android.provider.Settings
+import android.text.InputType
 import android.view.View
 import android.view.WindowManager
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.EditText
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import pl.snowdog.kiosk.databinding.ActivityMainBinding
 
 class WebviewActivity : AppCompatActivity() {
+    private val PIN = "06111975"
     private lateinit var webView: WebView
     private lateinit var reloadOnConnected: ReloadOnConnected
     private lateinit var adminComponentName: ComponentName
     private lateinit var policyManager: DevicePolicyManager
+    private lateinit var mDevicePolicyManager: DevicePolicyManager
+    private lateinit var sharedPref: SharedPreferences
+    private lateinit var binding: ActivityMainBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_webview)
+        binding = ActivityMainBinding.inflate(layoutInflater)
 
         val defaultUrl = "https://on-system.net"
-
-        val sharedPref = getSharedPreferences(getString(R.string.storage_key), Context.MODE_PRIVATE)?: return
+        sharedPref = getSharedPreferences(getString(R.string.storage_key), Context.MODE_PRIVATE)?: return
         val url = sharedPref.getString(getString(R.string.url_key), defaultUrl)
-        showInFullScreen(findViewById(R.id.root))
+
         initVars()
+        setKioskPolicies(isAdmin())
+        showInFullScreen(findViewById(R.id.root))
         setupWebView(url?:defaultUrl)
         listenToConnectionChange()
+
+        val fab: View = findViewById(R.id.fab)
+        fab.setOnClickListener {
+            showDialog()
+        }
     }
+
+    private fun showDialog() {
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle(R.string.dialog_title)
+        val input = EditText(this)
+        input.inputType = InputType.TYPE_CLASS_NUMBER
+        input.width = 0
+        builder.setView(input)
+
+        builder.setPositiveButton(android.R.string.yes) { _, _ ->
+            val pin =  input.text.toString().toInt()
+            if (pin == PIN.toInt()) {
+                goToHome()
+            } else {
+                Toast.makeText(applicationContext,
+                    R.string.dialog_wrong, Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        builder.show()
+    }
+
+    private fun goToHome() {
+        with (sharedPref.edit()) {
+            putBoolean(getString(R.string.edit_key), true)
+            commit()
+        }
+        super.onBackPressed()
+    }
+
+    private fun setKeyGuardEnabled() {
+        mDevicePolicyManager.setKeyguardDisabled(adminComponentName, false)
+    }
+
+    private fun setAsHomeApp() {
+        val intentFilter = IntentFilter(Intent.ACTION_MAIN).apply {
+            addCategory(Intent.CATEGORY_HOME)
+            addCategory(Intent.CATEGORY_DEFAULT)
+        }
+        mDevicePolicyManager.addPersistentPreferredActivity(
+            adminComponentName, intentFilter, ComponentName(packageName, MainActivity::class.java.name)
+        )
+    }
+
+    private fun setUserRestriction(restriction: String) = mDevicePolicyManager.addUserRestriction(adminComponentName, restriction)
+
+    private fun enableStayOnWhilePluggedIn() =
+        mDevicePolicyManager.setGlobalSetting(
+            adminComponentName,
+            Settings.Global.STAY_ON_WHILE_PLUGGED_IN,
+            (BatteryManager.BATTERY_PLUGGED_AC
+                    or BatteryManager.BATTERY_PLUGGED_USB
+                    or BatteryManager.BATTERY_PLUGGED_WIRELESS).toString()
+        )
+
+    private fun setUpdatePolicy() {
+            mDevicePolicyManager.setSystemUpdatePolicy(
+                adminComponentName,
+                SystemUpdatePolicy.createWindowedInstallPolicy(60, 120)
+            )
+    }
+
+    private fun setRestrictions() {
+        setUserRestriction(UserManager.DISALLOW_SAFE_BOOT)
+        setUserRestriction(UserManager.DISALLOW_FACTORY_RESET)
+        setUserRestriction(UserManager.DISALLOW_ADD_USER)
+        setUserRestriction(UserManager.DISALLOW_MOUNT_PHYSICAL_MEDIA)
+        setUserRestriction(UserManager.DISALLOW_ADJUST_VOLUME)
+        mDevicePolicyManager.setStatusBarDisabled(adminComponentName, true)
+    }
+
+    private fun setKioskPolicies(isAdmin: Boolean) {
+        if (isAdmin) {
+            setRestrictions()
+            enableStayOnWhilePluggedIn()
+            setUpdatePolicy()
+            setAsHomeApp()
+            setKeyGuardEnabled()
+        }
+
+        setLockTask(isAdmin)
+        setImmersiveMode()
+    }
+
+    private fun setImmersiveMode() {
+            val flags = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                    or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    or View.SYSTEM_UI_FLAG_FULLSCREEN
+                    or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY)
+            window.decorView.systemUiVisibility = flags
+    }
+
+    private fun setLockTask(isAdmin: Boolean) {
+        if (isAdmin) {
+            mDevicePolicyManager.setLockTaskPackages(
+                adminComponentName, arrayOf(packageName)
+            )
+        }
+        startLockTask()
+    }
+
+    private fun isAdmin() = mDevicePolicyManager.isDeviceOwnerApp(packageName)
 
     override fun onResume() {
         super.onResume()
@@ -46,8 +165,6 @@ class WebviewActivity : AppCompatActivity() {
     override fun onBackPressed() {
         if (::webView.isInitialized && webView.canGoBack())
             webView.goBack()
-        else
-            super.onBackPressed()
     }
 
     override fun onDestroy() {
@@ -111,6 +228,7 @@ class WebviewActivity : AppCompatActivity() {
         webView = findViewById(R.id.webView)
         reloadOnConnected = ReloadOnConnected(webView)
         adminComponentName = MyDeviceAdminReceiver.getComponentName(this)
+        mDevicePolicyManager = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
         policyManager = getSystemService(DEVICE_POLICY_SERVICE) as DevicePolicyManager
     }
 

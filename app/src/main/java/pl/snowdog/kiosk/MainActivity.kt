@@ -44,6 +44,13 @@ class MainActivity : AppCompatActivity() {
         sharedPref = getSharedPreferences(getString(R.string.storage_key), Context.MODE_PRIVATE)?: return
         val url = sharedPref.getString(getString(R.string.url_key), "")
         binding.txtUrl.editText?.setText(url)
+        val edit = sharedPref.getBoolean(getString(R.string.edit_key), false)
+
+        if (!edit && url != null && url != "") {
+            val intent = Intent(applicationContext, WebviewActivity::class.java)
+            startActivity(intent)
+            return
+        }
 
         val isAdmin = isAdmin()
         if (isAdmin) {
@@ -51,9 +58,15 @@ class MainActivity : AppCompatActivity() {
         } else {
             Snackbar.make(binding.content, R.string.not_device_owner, Snackbar.LENGTH_SHORT).show()
         }
+
+       initButtons(isAdmin)
+    }
+
+    private fun initButtons(isAdmin: Boolean) {
         binding.btStartLockTask.setOnClickListener {
             setKioskPolicies(true, isAdmin)
         }
+
         binding.btStopLockTask.setOnClickListener {
             setKioskPolicies(false, isAdmin)
             val intent = Intent(applicationContext, MainActivity::class.java).apply {
@@ -65,6 +78,11 @@ class MainActivity : AppCompatActivity() {
         binding.btInstallApp.setOnClickListener {
             installApp()
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        initButtons(isAdmin())
     }
 
     private fun isAdmin() = mDevicePolicyManager.isDeviceOwnerApp(packageName)
@@ -86,8 +104,14 @@ class MainActivity : AppCompatActivity() {
             commit()
         }
 
-        val intent = Intent(applicationContext, WebviewActivity::class.java)
-        startActivity(intent)
+        if (enable) {
+            with (sharedPref.edit()) {
+                putBoolean(getString(R.string.edit_key), false)
+                commit()
+            }
+            val intent = Intent(applicationContext, WebviewActivity::class.java)
+            startActivity(intent)
+        }
     }
 
     // region restrictions
