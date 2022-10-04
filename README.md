@@ -1,6 +1,6 @@
 # Kiosk
 
-Application permits to set an URL that will be opened on app start in a Webview with Lock Task mode active (Kiosk app). You can return to URL configuration screen clicking FAB button and enter an hardcoded PIN.
+Application permits to set an URL (and a PIN) that will be opened on app start in a Webview with Lock Task mode active (Kiosk app). You can return to URL configuration screen clicking FAB button and enter the PIN.
 Inspired by [mrugacz95/kiosk](https://github.com/mrugacz95/kiosk)
 
 ## Article
