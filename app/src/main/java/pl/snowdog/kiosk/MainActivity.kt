@@ -5,8 +5,6 @@ import android.app.PendingIntent.FLAG_IMMUTABLE
 import android.app.admin.DevicePolicyManager
 import android.app.admin.SystemUpdatePolicy
 import android.content.*
-import android.content.pm.PackageInstaller
-import android.content.pm.PackageInstaller.SessionParams
 import android.os.BatteryManager
 import android.os.Bundle
 import android.os.UserManager
@@ -78,9 +76,6 @@ class MainActivity : AppCompatActivity() {
             }
             intent.putExtra(LOCK_ACTIVITY_KEY, false)
             startActivity(intent)
-        }
-        binding.btInstallApp.setOnClickListener {
-            installApp()
         }
     }
 
@@ -244,30 +239,5 @@ class MainActivity : AppCompatActivity() {
             FLAG_IMMUTABLE
         )
         return pendingIntent.intentSender
-    }
-
-    private fun installApp() {
-        if (!isAdmin()) {
-            Snackbar.make(binding.content, R.string.not_device_owner, Snackbar.LENGTH_LONG).show()
-            return
-        }
-        val raw = resources.openRawResource(R.raw.other_app)
-        val packageInstaller: PackageInstaller = packageManager.packageInstaller
-        val params = SessionParams(SessionParams.MODE_FULL_INSTALL)
-        params.setAppPackageName("com.mrugas.smallapp")
-        val sessionId = packageInstaller.createSession(params)
-        val session = packageInstaller.openSession(sessionId)
-        val out = session.openWrite("SmallApp", 0, -1)
-        val buffer = ByteArray(65536)
-        var c: Int
-        while (raw.read(buffer).also { c = it } != -1) {
-            out.write(buffer, 0, c)
-        }
-        session.fsync(out)
-        out.close()
-        createIntentSender(this, sessionId, packageName)?.let { intentSender ->
-            session.commit(intentSender)
-        }
-        session.close()
     }
 }

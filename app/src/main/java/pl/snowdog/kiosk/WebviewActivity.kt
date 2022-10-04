@@ -9,7 +9,10 @@ import android.os.Build
 import android.os.Bundle
 import android.os.UserManager
 import android.provider.Settings
+import android.text.Editable
 import android.text.InputType
+import android.text.TextUtils
+import android.text.TextWatcher
 import android.view.View
 import android.view.WindowManager
 import android.webkit.WebView
@@ -62,16 +65,29 @@ class WebviewActivity : AppCompatActivity() {
         builder.setView(input)
 
         builder.setPositiveButton(android.R.string.yes) { _, _ ->
-            val pin =  input.text.toString().toInt()
+            val pin = input.text.toString().toInt()
             if (pin == PIN.toInt()) {
                 goToHome()
             } else {
-                Toast.makeText(applicationContext,
-                    R.string.dialog_wrong, Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    applicationContext,
+                    R.string.dialog_wrong, Toast.LENGTH_SHORT
+                ).show()
             }
         }
 
-        builder.show()
+        val dialog = builder.show()
+        val button = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+        button.isEnabled = false
+
+        input.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {}
+
+            override fun afterTextChanged(s: Editable) {
+                button.isEnabled = !TextUtils.isEmpty(s)
+            }
+        })
     }
 
     private fun goToHome() {
