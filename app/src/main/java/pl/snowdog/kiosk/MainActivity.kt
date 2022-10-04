@@ -1,7 +1,5 @@
 package pl.snowdog.kiosk
 
-import android.app.PendingIntent
-import android.app.PendingIntent.FLAG_IMMUTABLE
 import android.app.admin.DevicePolicyManager
 import android.app.admin.SystemUpdatePolicy
 import android.content.*
@@ -26,7 +24,6 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         const val LOCK_ACTIVITY_KEY = "pl.snowdog.kiosk.MainActivity"
-        const val URL_REGEX =  "(https?:\\/\\/)?([\\da-z\\.-]+)\\.([a-z]{2,6})([\\/\\w\\.-]*)*\\/?"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,23 +32,28 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         mAdminComponentName = MyDeviceAdminReceiver.getComponentName(this)
-        mDevicePolicyManager = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+        mDevicePolicyManager =
+            getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
 
         mDevicePolicyManager.removeActiveAdmin(mAdminComponentName)
-        sharedPref = getSharedPreferences(getString(R.string.storage_key), Context.MODE_PRIVATE)?: return
+        sharedPref =
+            getSharedPreferences(getString(R.string.storage_key), Context.MODE_PRIVATE) ?: return
 
         val url = sharedPref.getString(getString(R.string.url_key), "")
         binding.txtUrl.editText?.setText(url)
+        val pin = sharedPref.getString(getString(R.string.pin_key), "")
+        binding.txtPin.editText?.setText(pin)
+
         val edit = sharedPref.getBoolean(getString(R.string.edit_key), false)
 
-        if (!edit && url != null && url != "") {
-            if (url.matches(URL_REGEX.toRegex())) {
-                val intent = Intent(applicationContext, WebviewActivity::class.java)
-                startActivity(intent)
-                return
-            } else {
-                Snackbar.make(binding.content, R.string.url_wrong, Snackbar.LENGTH_SHORT).show()
-            }
+        if (!edit && url != null && url != "" && pin != null && pin != "") {
+            val intent = Intent(applicationContext, WebviewActivity::class.java)
+            startActivity(intent)
+            return
+        } else if (url == null || url == "") {
+            showValidationError(R.string.url_wrong, R.id.txtUrl)
+        } else if (pin == null || pin == "") {
+            showValidationError(R.string.pin_wrong, R.id.txtPin)
         }
 
         val isAdmin = isAdmin()
@@ -61,7 +63,7 @@ class MainActivity : AppCompatActivity() {
             Snackbar.make(binding.content, R.string.not_device_owner, Snackbar.LENGTH_SHORT).show()
         }
 
-       initButtons(isAdmin)
+        initButtons(isAdmin)
     }
 
     private fun initButtons(isAdmin: Boolean) {
@@ -86,19 +88,27 @@ class MainActivity : AppCompatActivity() {
 
     private fun isAdmin() = mDevicePolicyManager.isDeviceOwnerApp(packageName)
 
+    private fun showValidationError(message: Int, anchorId: Int) {
+        val snack = Snackbar.make(binding.content, message, Snackbar.LENGTH_SHORT)
+        val layoutParams = snack.view.layoutParams as CoordinatorLayout.LayoutParams
+        layoutParams.anchorId = anchorId //Id for your bottomNavBar or TabLayout
+        layoutParams.anchorGravity = Gravity.BOTTOM
+        layoutParams.gravity = Gravity.BOTTOM
+        layoutParams.topMargin = 10
+        snack.view.layoutParams = layoutParams
+        snack.show()
+    }
+
     private fun setKioskPolicies(enable: Boolean, isAdmin: Boolean) {
-        var url =  binding.txtUrl.editText?.text.toString()
+        var url = binding.txtUrl.editText?.text.toString()
+        val pin = binding.txtPin.editText?.text.toString()
 
         if (enable) {
-            if (!url.matches(URL_REGEX.toRegex())) {
-                val snack = Snackbar.make(binding.content, R.string.url_wrong, Snackbar.LENGTH_SHORT)
-                val layoutParams = snack.view.layoutParams as CoordinatorLayout.LayoutParams
-                layoutParams.anchorId = R.id.txtUrl //Id for your bottomNavBar or TabLayout
-                layoutParams.anchorGravity = Gravity.BOTTOM
-                layoutParams.gravity = Gravity.BOTTOM
-                layoutParams.topMargin = 10
-                snack.view.layoutParams = layoutParams
-                snack.show()
+            if (url.trim() == "") {
+                showValidationError(R.string.url_wrong, R.id.txtUrl)
+                return
+            } else if (pin.trim() == "") {
+                showValidationError(R.string.pin_wrong, R.id.txtPin)
                 return
             }
 
@@ -120,15 +130,15 @@ class MainActivity : AppCompatActivity() {
         setImmersiveMode(enable)
 
 
-
         // save URL on storage
-        with (sharedPref.edit()) {
+        with(sharedPref.edit()) {
             putString(getString(R.string.url_key), url)
+            putString(getString(R.string.pin_key), pin)
             commit()
         }
 
         if (enable) {
-            with (sharedPref.edit()) {
+            with(sharedPref.edit()) {
                 putBoolean(getString(R.string.edit_key), false)
                 commit()
             }
@@ -163,7 +173,11 @@ class MainActivity : AppCompatActivity() {
                     or BatteryManager.BATTERY_PLUGGED_WIRELESS).toString()
         )
     } else {
-        mDevicePolicyManager.setGlobalSetting(mAdminComponentName, Settings.Global.STAY_ON_WHILE_PLUGGED_IN, "0")
+        mDevicePolicyManager.setGlobalSetting(
+            mAdminComponentName,
+            Settings.Global.STAY_ON_WHILE_PLUGGED_IN,
+            "0"
+        )
     }
 
     private fun setLockTask(start: Boolean, isAdmin: Boolean) {
@@ -197,7 +211,9 @@ class MainActivity : AppCompatActivity() {
                 addCategory(Intent.CATEGORY_DEFAULT)
             }
             mDevicePolicyManager.addPersistentPreferredActivity(
-                mAdminComponentName, intentFilter, ComponentName(packageName, MainActivity::class.java.name)
+                mAdminComponentName,
+                intentFilter,
+                ComponentName(packageName, MainActivity::class.java.name)
             )
         } else {
             mDevicePolicyManager.clearPackagePersistentPreferredActivities(
@@ -225,19 +241,5 @@ class MainActivity : AppCompatActivity() {
                     or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
             window.decorView.systemUiVisibility = flags
         }
-    }
-
-    private fun createIntentSender(context: Context?, sessionId: Int, packageName: String?): IntentSender? {
-        val intent = Intent("INSTALL_COMPLETE")
-        if (packageName != null) {
-            intent.putExtra("PACKAGE_NAME", packageName)
-        }
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            sessionId,
-            intent,
-            FLAG_IMMUTABLE
-        )
-        return pendingIntent.intentSender
     }
 }

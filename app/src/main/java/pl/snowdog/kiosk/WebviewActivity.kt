@@ -4,6 +4,7 @@ import android.app.AlertDialog
 import android.app.admin.DevicePolicyManager
 import android.app.admin.SystemUpdatePolicy
 import android.content.*
+import android.net.http.SslError
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Bundle
@@ -15,6 +16,7 @@ import android.text.TextUtils
 import android.text.TextWatcher
 import android.view.View
 import android.view.WindowManager
+import android.webkit.SslErrorHandler
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.EditText
@@ -25,8 +27,8 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import pl.snowdog.kiosk.databinding.ActivityMainBinding
 
+
 class WebviewActivity : AppCompatActivity() {
-    private val PIN = "06111975"
     private lateinit var webView: WebView
     private lateinit var reloadOnConnected: ReloadOnConnected
     private lateinit var adminComponentName: ComponentName
@@ -34,6 +36,7 @@ class WebviewActivity : AppCompatActivity() {
     private lateinit var mDevicePolicyManager: DevicePolicyManager
     private lateinit var sharedPref: SharedPreferences
     private lateinit var binding: ActivityMainBinding
+    private var pin: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,6 +46,7 @@ class WebviewActivity : AppCompatActivity() {
         val defaultUrl = "https://on-system.net"
         sharedPref = getSharedPreferences(getString(R.string.storage_key), Context.MODE_PRIVATE)?: return
         val url = sharedPref.getString(getString(R.string.url_key), defaultUrl)
+        pin = sharedPref.getString(getString(R.string.pin_key), "1234")
 
         initVars()
         setKioskPolicies(isAdmin())
@@ -65,8 +69,8 @@ class WebviewActivity : AppCompatActivity() {
         builder.setView(input)
 
         builder.setPositiveButton(android.R.string.yes) { _, _ ->
-            val pin = input.text.toString().toInt()
-            if (pin == PIN.toInt()) {
+            val inputPin = input.text.toString().toInt()
+            if (inputPin == pin?.toInt()) {
                 goToHome()
             } else {
                 Toast.makeText(
@@ -222,7 +226,16 @@ class WebviewActivity : AppCompatActivity() {
     private fun listenToConnectionChange() = reloadOnConnected.onActivityCreate(this)
 
     private fun setupWebView(url: String) {
-        webView.webViewClient = WebViewClient()
+        webView.webViewClient = object : WebViewClient() {
+            override fun onReceivedSslError(
+                view: WebView?,
+                handler: SslErrorHandler?,
+                error: SslError?
+            ) {
+                handler?.proceed() // Ignore SSL certificate errors
+            }
+        }
+
         with(webView.settings) {
             javaScriptEnabled = true
             domStorageEnabled = true
