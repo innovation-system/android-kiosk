@@ -15,10 +15,10 @@ Inspired by [mrugacz95/kiosk](https://github.com/mrugacz95/kiosk)
 
 1. Make factory reset
 2. Skip adding google acount
-3. Install apk (`-t` flag is needed for test mode apk)
+3. Install apk
 
 ```bash
-adb install -t path/to/kiosk.apk
+adb install path/to/kiosk.apk
 ```
 
 1. Set device owner
